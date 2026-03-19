@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meme Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-card: #0f3460;
+      --accent: #e94560;
+      --accent-hover: #ff6b6b;
+      --text-primary: #eaeaea;
+      --text-secondary: #a0a0a0;
+      --success: #4ecca3;
+      --claude-color: #d97706;
+      --gpt-color: #10a37f;
+    }
+
+    .dark {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-card: #0f3460;
+      --accent: #e94560;
+      --accent-hover: #ff6b6b;
+      --text-primary: #eaeaea;
+      --text-secondary: #a0a0a0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 10% 20%, rgba(233, 69, 96, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 80%, rgba(78, 204, 163, 0.1) 0%, transparent 50%);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 30px 0;
+      animation: fadeInDown 0.6s ease-out;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, var(--accent) 0%, #ff9a56 50%, var(--success) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 4px 30px rgba(233, 69, 96, 0.3);
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      margin-top: 8px;
+      font-size: 1rem;
+    }
+
+    .upload-section {
+      background: var(--bg-secondary);
+      border-radius: 20px;
+      padding: 40px;
+      margin: 20px 0;
+      border: 2px dashed var(--bg-card);
+      transition: all 0.3s ease;
+      animation: fadeIn 0.6s ease-out 0.2s both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .upload-section.dragover {
+      border-color: var(--accent);
+      background: rgba(233, 69, 96, 0.1);
+    }
+
+    .upload-content {
+      text-align: center;
+    }
+
+    .upload-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    .upload-label {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color: white;
+      padding: 15px 40px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+    }
+
+    .upload-label:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(233, 69, 96, 0.5);
+    }
+
+    .upload-label:active {
+      transform: translateY(0);
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .preview-container {
+      margin-top: 25px;
+      display: none;
+    }
+
+    .preview-container.visible {
+      display: block;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .preview-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .preview-image {
+      max-width: 300px;
+      max-height: 250px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .generate-btn {
+      background: linear-gradient(135deg, var(--success), #2dd4bf);
+      color: #1a1a2e;
+      border: none;
+      padding: 16px 50px;
+      border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(78, 204, 163, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .generate-btn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 35px rgba(78, 204, 163, 0.5);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .loading-section {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .loading-section.visible {
+      display: block;
+    }
+
+    .loader {
+      width: 80px;
+      height: 80px;
+      border: 4px solid var(--bg-card);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 25px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 1.3rem;
+      color: var(--text-secondary);
+    }
+
+    .loading-subtext {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      margin-top: 10px;
+    }
+
+    .results-section {
+      display: none;
+      margin-top: 40px;
+    }
+
+    .results-section.visible {
+      display: block;
+    }
+
+    .results-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .results-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 2rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .bot-section {
+      margin-bottom: 40px;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .bot-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--bg-card);
+    }
+
+    .bot-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.2rem;
+    }
+
+    .claude-icon {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      color: white;
+    }
+
+    .gpt-icon {
+      background: linear-gradient(135deg, #10a37f, #34d399);
+      color: white;
+    }
+
+    .bot-name {
+      font-weight: 700;
+      font-size: 1.3rem;
+    }
+
+    .memes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+    }
+
+    .meme-card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease;
+    }
+
+    .meme-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .meme-canvas-container {
+      position: relative;
+      width: 100%;
+      background: #000;
+    }
+
+    .meme-canvas-container img {
+      width: 100%;
+      display: block;
+    }
+
+    .meme-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      font-family: 'Anton', sans-serif;
+      color: white;
+      text-transform: uppercase;
+      font-size: clamp(1rem, 4vw, 1.5rem);
+      padding: 10px 15px;
+      text-shadow:
+        2px 2px 0 #000,
+        -2px -2px 0 #000,
+        2px -2px 0 #000,
+        -2px 2px 0 #000,
+        0 2px 0 #000,
+        2px 0 0 #000,
+        0 -2px 0 #000,
+        -2px 0 0 #000;
+      word-wrap: break-word;
+      line-height: 1.2;
+    }
+
+    .meme-text.top {
+      top: 5px;
+    }
+
+    .meme-text.bottom {
+      bottom: 5px;
+    }
+
+    .meme-loading, .meme-error {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .meme-error {
+      color: var(--accent);
+    }
+
+    .error-message {
+      background: rgba(233, 69, 96, 0.2);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+      display: none;
+    }
+
+    .error-message.visible {
+      display: block;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .reset-btn {
+      background: transparent;
+      border: 2px solid var(--text-secondary);
+      color: var(--text-secondary);
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 30px;
+    }
+
+    .reset-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+
+      .upload-section {
+        padding: 30px 20px;
+      }
+
+      .memes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎭 Meme Generator</h1>
+      <p class="subtitle">Upload an image and let AI create hilarious memes!</p>
+    </header>
+
+    <section class="upload-section" id="uploadSection">
+      <div class="upload-content">
+        <span class="upload-icon">📸</span>
+        <p style="margin-bottom: 20px; color: var(--text-secondary);">Drag & drop an image or click to browse</p>
+        <label class="upload-label" for="fileInput">Choose Image</label>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+
+      <div class="preview-container" id="previewContainer">
+        <div class="preview-wrapper">
+          <img id="previewImage" class="preview-image" src="" alt="Preview">
+          <button class="generate-btn" id="generateBtn">🚀 Generate Memes</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <section class="loading-section" id="loadingSection">
+      <div class="loader"></div>
+      <p class="loading-text">Creating your memes...</p>
+      <p class="loading-subtext">Claude and GPT are brainstorming hilarious captions</p>
+    </section>
+
+    <section class="results-section" id="resultsSection">
+      <div class="results-header">
+        <h2 class="results-title">Your Memes</h2>
+      </div>
+
+      <div class="bot-section">
+        <div class="bot-header">
+          <div class="bot-icon claude-icon">C</div>
+          <span class="bot-name">Claude Sonnet 4</span>
+        </div>
+        <div class="memes-grid" id="claudeMemes"></div>
+      </div>
+
+      <div class="bot-section">
+        <div class="bot-header">
+          <div class="bot-icon gpt-icon">G</div>
+          <span class="bot-name">GPT-4o</span>
+        </div>
+        <div class="memes-grid" id="gptMemes"></div>
+      </div>
+
+      <div style="text-align: center;">
+        <button class="reset-btn" id="resetBtn">↻ Create More Memes</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Dark mode detection
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      if (event.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    });
+
+    // DOM Elements
+    const uploadSection = document.getElementById('uploadSection');
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const generateBtn = document.getElementById('generateBtn');
+    const loadingSection = document.getElementById('loadingSection');
+    const resultsSection = document.getElementById('resultsSection');
+    const claudeMemesGrid = document.getElementById('claudeMemes');
+    const gptMemesGrid = document.getElementById('gptMemes');
+    const errorMessage = document.getElementById('errorMessage');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let uploadedFile = null;
+    let imageDataUrl = null;
+
+    // Drag and drop handling
+    uploadSection.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadSection.classList.add('dragover');
+    });
+
+    uploadSection.addEventListener('dragleave', () => {
+      uploadSection.classList.remove('dragover');
+    });
+
+    uploadSection.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadSection.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type.startsWith('image/')) {
+        handleFile(files[0]);
+      }
+    });
+
+    // File input handling
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    function handleFile(file) {
+      uploadedFile = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imageDataUrl = e.target.result;
+        previewImage.src = imageDataUrl;
+        previewContainer.classList.add('visible');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Generate memes
+    generateBtn.addEventListener('click', generateMemes);
+
+    async function generateMemes() {
+      if (!uploadedFile) return;
+
+      // Hide upload, show loading
+      uploadSection.style.display = 'none';
+      errorMessage.classList.remove('visible');
+      loadingSection.classList.add('visible');
+      resultsSection.classList.remove('visible');
+
+      // Clear previous results
+      claudeMemesGrid.innerHTML = '';
+      gptMemesGrid.innerHTML = '';
+
+      const prompt = `Look at this image and create 2 different funny meme captions for it.
+For each meme, provide TOP text and BOTTOM text in classic meme format.
+
+IMPORTANT: Respond ONLY with valid JSON in this exact format, no other text:
+{"memes": [{"top": "TOP TEXT HERE", "bottom": "BOTTOM TEXT HERE"}, {"top": "TOP TEXT HERE", "bottom": "BOTTOM TEXT HERE"}]}
+
+Make the captions funny, witty, and relevant to what you see in the image. Use classic meme humor style.`;
+
+      // Register handlers
+      window.Poe.registerHandler('claude-meme-handler', (result) => {
+        handleMemeResponse(result, 'claude');
+      });
+
+      window.Poe.registerHandler('gpt-meme-handler', (result) => {
+        handleMemeResponse(result, 'gpt');
+      });
+
+      try {
+        // Send to both bots in parallel using multiple mentions
+        await window.Poe.sendUserMessage(
+          `@Claude-Sonnet-4 @GPT-4o ${prompt}`,
+          {
+            attachments: [uploadedFile],
+            handler: 'claude-meme-handler',
+            stream: false,
+            openChat: false
+          }
+        );
+      } catch (err) {
+        showError('Failed to send message: ' + err.message);
+        resetUI();
+      }
+    }
+
+    function handleMemeResponse(result, botType) {
+      const grid = botType === 'claude' ? claudeMemesGrid : gptMemesGrid;
+
+      // Find the response for this bot
+      const response = result.responses.find(r => {
+        const senderId = r.senderId.toLowerCase().replace(/[-._]/g, '');
+        if (botType === 'claude') {
+          return senderId.includes('claude');
+        } else {
+          return senderId.includes('gpt');
+        }
+      });
+
+      if (!response) return;
+
+      if (response.status === 'error') {
+        grid.innerHTML = `<div class="meme-error">Error: ${response.statusText || 'Failed to generate'}</div>`;
+        checkAllComplete(result);
+        return;
+      }
+
+      if (response.status === 'incomplete') {
+        grid.innerHTML = `<div class="meme-loading">⏳ Generating...</div>`;
+        return;
+      }
+
+      if (response.status === 'complete') {
+        try {
+          const memes = parseMemeResponse(response.content);
+          renderMemes(memes, grid);
+        } catch (err) {
+          console.log('Parse error:', err, 'Content:', response.content);
+          grid.innerHTML = `<div class="meme-error">Failed to parse response</div>`;
+        }
+        checkAllComplete(result);
+      }
+    }
+
+    function checkAllComplete(result) {
+      if (result.status === 'complete') {
+        loadingSection.classList.remove('visible');
+        resultsSection.classList.add('visible');
+      }
+    }
+
+    function parseMemeResponse(content) {
+      // Try to extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*"memes"[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return parsed.memes;
+      }
+
+      // Fallback: try to parse the entire content as JSON
+      const parsed = JSON.parse(content);
+      return parsed.memes;
+    }
+
+    function renderMemes(memes, container) {
+      container.innerHTML = '';
+
+      memes.forEach((meme, index) => {
+        const card = document.createElement('div');
+        card.className = 'meme-card';
+        card.style.animationDelay = `${index * 0.1}s`;
+
+        card.innerHTML = `
+          <div class="meme-canvas-container">
+            <img src="${imageDataUrl}" alt="Meme">
+            <div class="meme-text top">${escapeHtml(meme.top)}</div>
+            <div class="meme-text bottom">${escapeHtml(meme.bottom)}</div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add('visible');
+    }
+
+    function resetUI() {
+      uploadSection.style.display = 'block';
+      loadingSection.classList.remove('visible');
+      resultsSection.classList.remove('visible');
+    }
+
+    // Reset button
+    resetBtn.addEventListener('click', () => {
+      uploadedFile = null;
+      imageDataUrl = null;
+      fileInput.value = '';
+      previewContainer.classList.remove('visible');
+      resetUI();
+    });
+  </script>
+</body>
+</html>
+
